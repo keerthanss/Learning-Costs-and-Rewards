@@ -1,15 +1,12 @@
 import torch
-import numpy as np
 import os
 import argparse
 
 from datetime import datetime
-from collections import namedtuple
 
 from approximator import FunctionApproximator, Ensemble
 import utils
-
-Transition = namedtuple('Transition', ['s', 'a', 'r', 'c', 'sprime', 'done'])
+from utils import Transition
 
 def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
     # dirpath must contain numbered folders where the numbering

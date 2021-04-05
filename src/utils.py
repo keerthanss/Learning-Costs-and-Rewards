@@ -1,13 +1,8 @@
-import torch
-from torch import nn
 import numpy as np
 import os
 import pickle
 
 from collections import namedtuple
-
-from approximator import FunctionApproximator
-
 Transition = namedtuple('Transition', ['s', 'a', 'r', 'c', 'sprime', 'done'])
 
 def extract_trajectory_from_file(filepath):

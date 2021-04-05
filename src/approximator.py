@@ -2,13 +2,6 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
-import os
-import pickle
-import argparse
-
-from collections import namedtuple
-
-Transition = namedtuple('Transition', ['s', 'a', 'r', 'c', 'sprime', 'done'])
 
 class FunctionApproximator(nn.Module):
 
@@ -20,8 +13,6 @@ class FunctionApproximator(nn.Module):
 
         self.lr = 2.5e-3
         self.lambd = 0.001
-        self.nopenaltyafter = 100 # Hardcoded. TODO
-        self.count = 0
         self.optimizer = torch.optim.Adam(self.parameters(),lr=self.lr)
 
     def forward(self, x, dropout=False):
@@ -58,7 +49,6 @@ class FunctionApproximator(nn.Module):
         loss = torch.log(1+torch.exp(return_batch1 - return_batch2)) + self.lambd*torch.square(return_batch1 + return_batch2)
         loss = loss.mean()
         
-        self.count += 1
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
