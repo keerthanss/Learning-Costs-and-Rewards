@@ -11,7 +11,7 @@ import utils
 
 Transition = namedtuple('Transition', ['s', 'a', 'r', 'c', 'sprime', 'done'])
 
-def train(dirpath, num_iters, save_freq=1000, save_path="."):
+def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
     # dirpath must contain numbered folders where the numbering
     # enforces the order 1 < 2 < 3 < 4 < ... so forth
     # each folder will contain any number of trajectories
@@ -31,24 +31,15 @@ def train(dirpath, num_iters, save_freq=1000, save_path="."):
         trajectories[cost_threshold] = utils.fetch_all_trajectories(dirpath+"/"+str(cost_threshold))
 
     for epoch in range(num_iters):
-        random_threshold_selection = np.random.choice(l, 2, replace=False) + 1
-        i, j = int(np.min(random_threshold_selection)), int(np.max(random_threshold_selection))
-        # i < j
-        traj1 = trajectories[i][np.random.choice(len(trajectories[i]))]
-        traj2 = trajectories[j][np.random.choice(len(trajectories[j]))]
-
-        slist1 = list(map(lambda x : x[0], traj1))
-        slist2 = list(map(lambda x : x[0], traj2))
-
-        reward_loss = reward.learn(slist1, slist2)
-        cost_loss = cost.learn(slist1, slist2)
+        slist1, slist2 = utils.prepare_minibatch(trajectories, batch_size)
+        reward_loss = reward.learn(slist1, slist2, batch_size=batch_size)
+        cost_loss = cost.learn(slist1, slist2, batch_size=batch_size)
 
         if epoch % save_freq == 0:
             reward.save(epoch, save_path, "reward")
             cost.save(epoch, save_path, "cost")
             print("Epoch {} : Reward loss = {}, Cost loss = {}".format(epoch, reward_loss, cost_loss))
-            utils.printit(slist1, traj1, reward, cost)
-            utils.printit(slist2, traj2, reward, cost)
+            utils.print_comparison(trajectories, reward, cost)
 
 
 def load(state_size, path):

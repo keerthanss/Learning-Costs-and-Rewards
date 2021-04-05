@@ -43,30 +43,20 @@ class FunctionApproximator(nn.Module):
             return_batch = torch.sum(self.forward(state_batch, dropout))
         return return_batch
 
-
-    def learn(self, slist1, slist2):
+    def learn(self, slist1, slist2, batch_size=1):
         # assuming slist1 and slist2 are from trajectories
         # t1 and t2 such that t1 < t2
+        assert (batch_size >= 1), "Batch size passed is less than 1"
 
         state_batch1 = torch.tensor(slist1, dtype=torch.float32)
         state_batch2 = torch.tensor(slist2, dtype=torch.float32)
 
-        return_batch1 = torch.sum(self.forward(state_batch1, dropout=True))
-        return_batch2 = torch.sum(self.forward(state_batch2, dropout=True))
-
-        #loss = -torch.exp( return_batch2 - torch.log(torch.exp(return_batch1) + torch.exp(return_batch2)) )
-        
-        #l2 = torch.exp(return_batch2)
-        #l1 = torch.exp(return_batch1)
-        #loss = -l2 / (l2 + l1)
-        #avg_exp_loss = l2 / (l2 + l1)
+        axis = 0 if batch_size == 1 else 1
+        return_batch1 = torch.sum(self.forward(state_batch1, dropout=True), axis=axis)
+        return_batch2 = torch.sum(self.forward(state_batch2, dropout=True), axis=axis)
 
         loss = torch.log(1+torch.exp(return_batch1 - return_batch2)) + self.lambd*torch.square(return_batch1 + return_batch2)
-        
-        #if self.count < self.nopenaltyafter:
-        #    loss = -1/(1 + torch.exp(return_batch1 - return_batch2)) + self.lambd * torch.square(return_batch1 + return_batch2)
-        #else:
-        #    loss = -1/(1 + torch.exp(return_batch1 - return_batch2))
+        loss = loss.mean()
         
         self.count += 1
         self.optimizer.zero_grad()
@@ -92,11 +82,12 @@ class Ensemble:
         result = np.average([fa.cumsum(x) for fa in self.fa_list])
         return result
     
-    def learn(self, slist1, slist2):
+    def learn(self, slist1, slist2, batch_size=1):
+        assert (batch_size >= 1), "Batch size passed is less than 1"
         to_train = np.random.choice(self.n, 2, replace=False)
         loss = 0
         for i in to_train:
-            loss += self.fa_list[i].learn(slist1, slist2)
+            loss += self.fa_list[i].learn(slist1, slist2, batch_size)
         return loss / 2
 
     def save(self, epoch, savepath=".", savename="models"):
