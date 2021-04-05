@@ -88,4 +88,11 @@ class Ensemble:
         }, savepath+"/{}_{}.pt".format(savename,epoch))
         return 
 
+    def load(self, path):
+        checkpoint = torch.load(path)
+        fa_params = checkpoint['fa_state_dict']
+        for i,fa in enumerate(self.fa_list):
+            fa.load_state_dict(fa_params[i])
+        return
+
     

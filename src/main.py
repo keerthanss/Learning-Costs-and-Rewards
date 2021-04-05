@@ -39,18 +39,6 @@ def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
             utils.print_comparison(trajectories, reward, cost)
 
 
-def load(state_size, path):
-    reward = FunctionApproximator(state_size)
-    cost = FunctionApproximator(state_size)
-
-    checkpoint = torch.load(path)
-    reward.load_state_dict(checkpoint['reward_state_dict'])
-    cost.load_state_dict(checkpoint['cost_state_dict'])
-
-    return reward, cost
-
-
-
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Preference-based Inverse RL")
     parser.add_argument("--dir", help="Directory which contains the trajectories", default="../data/trajectories_training_set")
