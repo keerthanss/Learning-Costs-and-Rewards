@@ -32,7 +32,7 @@ def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
         reward_loss = reward.learn(slist1, slist2, batch_size=batch_size)
         cost_loss = cost.learn(slist1, slist2, batch_size=batch_size)
 
-        if epoch % save_freq == 0:
+        if epoch % save_freq == save_freq - 1:
             reward.save(epoch, save_path, "reward")
             cost.save(epoch, save_path, "cost")
             print("Epoch {} : Reward loss = {}, Cost loss = {}".format(epoch, reward_loss, cost_loss))
