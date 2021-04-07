@@ -74,5 +74,5 @@ def prepare_minibatch(traj_dict, batch_size=64, segment_length=50):
         trimmed1 = trimmed1[0]
         trimmed2 = trimmed2[0]
 
-    return trimmed1, trimmed2
+    return i,j, trimmed1, trimmed2
 

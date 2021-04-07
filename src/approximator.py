@@ -34,7 +34,7 @@ class FunctionApproximator(nn.Module):
             return_batch = torch.sum(self.forward(state_batch, dropout))
         return return_batch
 
-    def learn(self, slist1, slist2, batch_size=1):
+    def learn(self, slist1, slist2, batch_size=1, bound1=None, bound2=None):
         # assuming slist1 and slist2 are from trajectories
         # t1 and t2 such that t1 < t2
         assert (batch_size >= 1), "Batch size passed is less than 1"
@@ -47,6 +47,15 @@ class FunctionApproximator(nn.Module):
         return_batch2 = torch.sum(self.forward(state_batch2, dropout=True), axis=axis)
 
         loss = torch.log(1+torch.exp(return_batch1 - return_batch2)) + self.lambd*torch.square(return_batch1 + return_batch2)
+        if bound1 is not None and bound2 is not None:
+            assert (bound1*bound2 >= 0), "Upper bound passed is negative"
+            # giving room for error
+            bound1 += 5
+            bound2 += 5
+
+            loss2 = torch.log(1 + torch.exp(return_batch1 - bound1))
+            loss3 = torch.log(1 + torch.exp(return_batch2 - bound2))
+            loss = loss + (loss2 + loss3)
         loss = loss.mean()
         
         self.optimizer.zero_grad()
@@ -72,12 +81,12 @@ class Ensemble:
         result = np.average([fa.cumsum(x) for fa in self.fa_list])
         return result
     
-    def learn(self, slist1, slist2, batch_size=1):
+    def learn(self, slist1, slist2, batch_size=1, bound1=None, bound2=None):
         assert (batch_size >= 1), "Batch size passed is less than 1"
         to_train = np.random.choice(self.n, 2, replace=False)
         loss = 0
         for i in to_train:
-            loss += self.fa_list[i].learn(slist1, slist2, batch_size)
+            loss += self.fa_list[i].learn(slist1, slist2, batch_size, bound1, bound2)
         return loss / 2
 
     def save(self, epoch, savepath=".", savename="models"):

@@ -20,6 +20,9 @@ def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
     state_size = len(throwaway[0][0])
     del throwaway
 
+    #hardcoded for now
+    idx_to_thresh = {1:0, 2:10, 3:20}
+
     reward = Ensemble(state_size) # FunctionApproximator(state_size)
     cost = Ensemble(state_size) #FunctionApproximator(state_size)
 
@@ -28,9 +31,10 @@ def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
         trajectories[cost_threshold] = utils.fetch_all_trajectories(dirpath+"/"+str(cost_threshold))
 
     for epoch in range(num_iters):
-        slist1, slist2 = utils.prepare_minibatch(trajectories, batch_size)
+        idx1, idx2, slist1, slist2 = utils.prepare_minibatch(trajectories, batch_size=batch_size, segment_length=100)
+        threshold1, threshold2 = idx_to_thresh[idx1], idx_to_thresh[idx2]
         reward_loss = reward.learn(slist1, slist2, batch_size=batch_size)
-        cost_loss = cost.learn(slist1, slist2, batch_size=batch_size)
+        cost_loss = cost.learn(slist1, slist2, batch_size=batch_size, bound1=threshold1, bound2=threshold2)
 
         if epoch % save_freq == save_freq - 1:
             reward.save(epoch, save_path, "reward")
