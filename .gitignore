@@ -2,3 +2,4 @@ old/*
 data/runs/*
 models*
 src/__pycache__/*
+*.txt
