@@ -31,7 +31,7 @@ def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
         trajectories[cost_threshold] = utils.fetch_all_trajectories(dirpath+"/"+str(cost_threshold))
 
     for epoch in range(num_iters):
-        idx1, idx2, slist1, slist2 = utils.prepare_minibatch(trajectories, batch_size=batch_size, segment_length=100)
+        idx1, idx2, slist1, slist2 = utils.prepare_minibatch(trajectories, batch_size=64, segment_length=100)
         threshold1, threshold2 = idx_to_thresh[idx1], idx_to_thresh[idx2]
         reward_loss = reward.learn(slist1, slist2, batch_size=batch_size)
         cost_loss = cost.learn(slist1, slist2, batch_size=batch_size, bound1=threshold1, bound2=threshold2)
@@ -57,4 +57,4 @@ if __name__=='__main__':
     chkptdir = main_dirname + "/" + args.checkpoint_dir
     os.mkdir(chkptdir)
 
-    train(args.dir, 5000, 500, save_path=chkptdir)
+    train(args.dir, 2500, 500, save_path=chkptdir)
