@@ -30,11 +30,13 @@ def train(dirpath, num_iters, save_freq=1000, save_path=".", batch_size=64):
     for cost_threshold in range(1,l+1):
         trajectories[cost_threshold] = utils.fetch_all_trajectories(dirpath+"/"+str(cost_threshold))
 
+    proper_pairs = utils.prune_preferences(trajectories)
+
     for epoch in range(num_iters):
-        idx1, idx2, slist1, slist2 = utils.prepare_minibatch(trajectories, batch_size=64, segment_length=100)
+        idx1, idx2, slist1, slist2 = utils.prepare_pruned_minibatch(trajectories, proper_pairs, batch_size=16, segment_length=500)
         threshold1, threshold2 = idx_to_thresh[idx1], idx_to_thresh[idx2]
         reward_loss = reward.learn(slist1, slist2, batch_size=batch_size)
-        cost_loss = cost.learn(slist1, slist2, batch_size=batch_size, bound1=threshold1, bound2=threshold2)
+        cost_loss = cost.learn(slist1, slist2, batch_size=batch_size, bound2=20)
 
         if epoch % save_freq == save_freq - 1:
             reward.save(epoch, save_path, "reward")
