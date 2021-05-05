@@ -1,6 +1,7 @@
 import torch
 import os
 import argparse
+import numpy as np
 
 from datetime import datetime
 
@@ -59,4 +60,5 @@ if __name__=='__main__':
     chkptdir = main_dirname + "/" + args.checkpoint_dir
     os.mkdir(chkptdir)
 
+    np.random.seed(10)
     train(args.dir, 2500, 500, save_path=chkptdir)
