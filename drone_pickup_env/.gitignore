@@ -1,0 +1,4 @@
+data/*
+trajectories/*
+test*
+*.pyc
