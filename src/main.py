@@ -67,7 +67,7 @@ def train(dirpath, num_iters, save_freq=500, save_path=".", batch_size=4, segmen
 
 if __name__=='__main__':
     parser = argparse.ArgumentParser(description="Preference-based Inverse RL")
-    parser.add_argument("--dir", help="Directory which contains the trajectories", default="../trajectories")
+    parser.add_argument("--dir", help="Directory which contains the trajectories", default="../data/trajectories_training_set")
     parser.add_argument("--checkpoint_dir", help="Directory to store checkpoints", default="checkpoints")
     args = parser.parse_args()
     
