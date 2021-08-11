@@ -3,6 +3,10 @@ import os
 import pickle
 from gridworld import GridWorld
 from collections import namedtuple
+
+'''
+Transition is a namedtuple used to store and read trajectories
+'''
 Transition = namedtuple('Transition', ['s', 'a', 'r', 'c', 'sprime', 'done'])
 
 def extract_trajectory_from_file(filepath):
@@ -21,7 +25,6 @@ def sample_trajectory(dirpath):
     return extract_trajectory_from_file(dirpath+"/"+files[i])
 
 def all_trajectory_locations(dirpath):
-    #t = [ extract_trajectory_from_file(dirpath+"/"+f) for f in files]
     return [ (dirpath + "/" + file_) for file_ in os.listdir(dirpath)]
 
 def total_x(traj, i):
@@ -37,6 +40,9 @@ def get_state_list(traj):
     return [ x.s for x in traj ]
 
 def _printit(traj_loc, reward_model, cost_model):
+    '''
+    Helper method for print_comparison function
+    '''
     traj = extract_trajectory_from_file(traj_loc)
     slist = get_state_list(traj)
     pred_reward = reward_model.cumsum(slist)
@@ -46,6 +52,17 @@ def _printit(traj_loc, reward_model, cost_model):
     print("Traj: Predicted (r,c) = {}, {}; Actual (r,c) = {}, {}".format(pred_reward, pred_cost, actual_reward, actual_cost))
 
 def print_comparison(traj_dict, reward_model, cost_model):
+    '''
+    Helper method to print the comparison between
+    the actual reward and cost as sampled from the
+    original environment, compared to the values
+    predicted by our IRL learner.
+    Used for debug purposes. While it's naturally
+    unlikely that the values will match, what
+    we are more interested in is if the learned
+    values will follow the same order among them
+    as the actual order.
+    '''
     # mini batch consists of trajectories from a single pair only
     random_threshold_selection = np.random.choice(list(traj_dict.keys()), 2, replace=False)
     i, j = int(np.min(random_threshold_selection)), int(np.max(random_threshold_selection))
@@ -55,6 +72,17 @@ def print_comparison(traj_dict, reward_model, cost_model):
     return
 
 def prune_preferences(traj_dict):
+    '''
+    Traj_dict is a dictionary of trajectories.
+    The order of the keys is the same imposed
+    order on the trajectories. For more details
+    see main.py
+    This method prunes all the pairs that do
+    not follow this order. Access to original
+    reward and cost functions is assumed. This
+    is used mainly for experimentation purposes
+    to see the effect of noise or its absence.
+    '''
     keys = list(traj_dict.keys())
     pruned_result = [] #set()
     all_ok = lambda t1, t2: total_reward(t1) <= total_reward(t2) and total_cost(t1) <= total_cost(t2)
@@ -71,6 +99,11 @@ def prune_preferences(traj_dict):
     return pruned_result
 
 def prepare_pruned_minibatch(traj_dict, traj_prefs, batch_size=64, segment_length=50):
+    '''
+    Helper method to prepare a minibatch consisting
+    of trajectories ordered with zero noise in them,
+    i.e., all exceptions to order are pruned out
+    '''
     random_pairs = np.random.choice(len(traj_prefs), batch_size, replace = False)
     random_trajs1, random_trajs2 = [], []
 
@@ -94,6 +127,11 @@ def prepare_pruned_minibatch(traj_dict, traj_prefs, batch_size=64, segment_lengt
     return i, j, random_trajs1, random_trajs2
 
 def prepare_minibatch(traj_dict, batch_size=64, segment_length=50):
+    '''
+    Helper method to prepare a minibatch of states
+    from a pair of trajectories when given access
+    to the entire set.
+    '''
     # mini batch consists of trajectories from a single pair only
     random_threshold_selection = np.random.choice(list(traj_dict.keys()), 2, replace=False)
     i, j = int(np.min(random_threshold_selection)), int(np.max(random_threshold_selection))

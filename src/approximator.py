@@ -4,6 +4,9 @@ import torch.nn.functional as F
 import numpy as np
 
 class FunctionApproximator(nn.Module):
+    '''
+    Neural network class
+    '''
 
     def __init__(self, in_dim):
         super().__init__()
@@ -16,6 +19,10 @@ class FunctionApproximator(nn.Module):
         self.optimizer = torch.optim.Adam(self.parameters(),lr=self.lr)
 
     def forward(self, x, dropout=False):
+        '''
+        dropout is used for training,
+        and turned off for inference
+        '''
         if dropout:
             x = F.tanh(self.fc1(x))
             x = F.dropout(x)
@@ -29,14 +36,24 @@ class FunctionApproximator(nn.Module):
         return x
 
     def cumsum(self, slist, dropout=False):
+        '''
+        Used for debug purposes. A simple method
+        to calculate the cumulative return.
+        The state_batch contains the states of an
+        entire trajectory. Thus, return_batch holds
+        a trajectory's return.
+        '''
         with torch.no_grad():
             state_batch = torch.tensor(slist, dtype=torch.float32)
             return_batch = torch.sum(self.forward(state_batch, dropout))
         return return_batch
 
     def learn(self, slist1, slist2, batch_size=1, bound1=None, bound2=None):
-        # assuming slist1 and slist2 are from trajectories
-        # t1 and t2 such that t1 < t2
+        '''
+        assuming slist1 and slist2 are from trajectories
+        t1 and t2 such that t1 < t2
+        The method performs one step of preference-based learning
+        '''
         assert (batch_size >= 1), "Batch size passed is less than 1"
 
         state_batch1 = torch.tensor(slist1, dtype=torch.float32)
@@ -50,8 +67,21 @@ class FunctionApproximator(nn.Module):
         return_batch1 = return_batch1.mean()
         return_batch2 = return_batch2.mean()
 
+        '''
+        loss includes a weight decay term as well.
+        this can be removed here and included in the
+        optimizer's parameters
+        '''
         loss = torch.log(1+torch.exp(return_batch1 - return_batch2)) + self.lambd*torch.square(return_batch1 + return_batch2)
         if bound1 is not None and bound2 is not None:
+            '''
+            the general preference-based learning step constitutes
+            learning t1 < t2. However, if we are supplied with
+            bounds for t1 and t2, say b1 and b2 respectively,
+            then the corresponding losses for t1 < b1 and t2 < b2
+            are included here
+            '''
+
             assert (bound1*bound2 >= 0), "Upper bound passed is negative"
             # giving room for error
             # bound1 += 5
@@ -69,6 +99,9 @@ class FunctionApproximator(nn.Module):
 
 
 class LinearApproximator(nn.Module):
+    '''
+    A simple logistic regression unit
+    '''
 
     def __init__(self, in_dim):
         super().__init__()
@@ -83,6 +116,13 @@ class LinearApproximator(nn.Module):
         return F.sigmoid(self.fc1(x))
 
     def cumsum(self, slist):
+        '''
+        Used for debug purposes. A simple method
+        to calculate the cumulative return.
+        The slist contains the states of an
+        entire trajectory. Thus, cum_res holds
+        a trajectory's return.
+        '''
         with torch.no_grad():
             sarray = torch.tensor(slist, dtype=torch.float32) #numstates x statesize
             res = self.forward(sarray) #numstates x 1
@@ -90,8 +130,12 @@ class LinearApproximator(nn.Module):
         return cum_res
     
     def learn(self, slist1, slist2, batch_size=1, bound1=None, bound2=None):
-        # assuming slist1 and slist2 are from trajectories
-        # t1 and t2 such that t1 < t2
+        '''
+        assuming slist1 and slist2 are from trajectories
+        t1 and t2 such that t1 < t2
+        The method performs one step of preference-based learning,
+        and is very similar to the method in FunctionApproximator
+        '''
         assert (batch_size >= 1), "Batch size passed is less than 1"
 
         state_batch1 = torch.tensor(slist1, dtype=torch.float32)
@@ -126,11 +170,18 @@ class LinearApproximator(nn.Module):
 class Ensemble:
 
     def __init__(self, in_dim, n=5):
+        '''
+        Holds an ensemble of n Neural networks
+        or linear approximators
+        '''
         self.fa_list = [FunctionApproximator(in_dim)]*n
         #self.fa_list = [LinearApproximator(in_dim)]*n
         self.n = n
 
     def forward(self,x):
+        '''
+        Returns the mean result
+        '''
         result = 0
         for fa in self.fa_list:
             result += fa(x)
@@ -142,6 +193,13 @@ class Ensemble:
         return result
     
     def learn(self, slist1, slist2, batch_size=1, bound1=None, bound2=None):
+        '''
+        This method randomly chooses 2 members and performs
+        one step of training on the chosen member function
+        approximators. Thus over the entire training stage,
+        different members are exposed to different data,
+        hopefully aiding in regularisation.
+        '''
         assert (batch_size >= 1), "Batch size passed is less than 1"
         to_train = np.random.choice(self.n, 2, replace=False)
         loss = 0

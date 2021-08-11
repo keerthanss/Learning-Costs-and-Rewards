@@ -10,9 +10,23 @@ import utils
 from utils import Transition
 
 def train(dirpath, num_iters, save_freq=500, save_path=".", batch_size=4, segment_length=100):
-    # dirpath must contain numbered folders where the numbering
-    # enforces the order 1 < 2 < 3 < 4 < ... so forth
-    # each folder will contain any number of trajectories
+    '''
+    The main training procedure.
+    Certain in-line comments have been instated to
+    convey possibilities for experimentation.
+    '''
+
+    '''
+    Note: dirpath is a variable pointing to a folder path.
+    This folder must have a very specific structure.
+    The folder must contain subfolders with numerical names
+    only. These labels will correspond to the cost thresholds
+    ideally. Each subfolder contains the expert trajectories
+    obtained with that corresponding cost threshold.
+    Thus the numbers of the folder convey the ordering of
+    the trajectories. Hence, this condition being met is
+    very important.
+    '''
     dirs = os.listdir(dirpath)
     l = len(dirs)
     intdirs = sorted(list(map(int, dirs)))
@@ -26,13 +40,20 @@ def train(dirpath, num_iters, save_freq=500, save_path=".", batch_size=4, segmen
     cost = Ensemble(state_size) #FunctionApproximator(state_size)
 
     trajectories = {} # cost : list of all trajectory locations
+    '''
+    trajectories dictionary is useful in working with the methods
+    from util.py. Its keys convey the order of the trajectories,
+    and for memory optimization purpose rather than holding
+    all the trajectories themselves, it merely contains the 
+    file paths for each one, from which the trajectory
+    can be loaded a la carte.
+    '''
     for cost_threshold in intdirs:
         trajectories[cost_threshold] = utils.all_trajectory_locations(dirpath+"/"+str(cost_threshold))
 
     #proper_pairs = utils.prune_preferences(trajectories)
 
     for epoch in range(num_iters):
-        #_, _, slist1, slist2 = utils.prepare_pruned_minibatch(trajectories, proper_pairs, batch_size=batch_size, segment_length=segment_length)
         threshold1, threshold2, slist1, slist2 = utils.prepare_minibatch(trajectories, batch_size, segment_length)
         reward_loss = reward.learn(slist1, slist2, batch_size=batch_size)
         cost_loss = cost.learn(slist1, slist2, batch_size=batch_size)#, bound1=threshold1, bound2=threshold2)
